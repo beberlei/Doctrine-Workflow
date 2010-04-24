@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="./DoctrineExtensions/TestHelper.php">
+    <php>
+        <var name="doctrine2-path" value="" />
+        <var name="ezc-base-file" value="" />
+        <var name="DC2_DRIVER" value="pdo_sqlite" />
+        <var name="DC2_DBNAME" value="" />
+        <var name="DC2_USER" value="" />
+        <var name="DC2_PASSWORD" value="" />
+    </php>
+</phpunit>
