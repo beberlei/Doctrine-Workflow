@@ -31,8 +31,13 @@ class SchemaBuilder
         $schema = $this->getWorkflowSchema($options);
         $schema->visit($sqlCol);
 
-        foreach ($sqlCol->getQueries() AS $query) {
-            $this->conn->exec($query);
+        $queries = $sqlCol->getQueries();
+        foreach ($queries AS $query) {
+            try {
+                $this->conn->exec($query);
+            } catch(\Exception $e) {
+                
+            }
         }
     }
 
@@ -59,7 +64,7 @@ class SchemaBuilder
         $nodeTable->addColumn('node_id', 'integer');
         $nodeTable->addColumn('workflow_id', 'integer');
         $nodeTable->addColumn('node_class', 'string');
-        $nodeTable->addColumn('node_configuration', 'text', array('notnull' => false));
+        $nodeTable->addColumn('node_configuration', 'text', array('notnull' => false, "length" => null));
         $nodeTable->setPrimaryKey(array('node_id'));
         $nodeTable->addIndex(array('workflow_id'));
         $nodeTable->addForeignKeyConstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'));
@@ -90,9 +95,9 @@ class SchemaBuilder
         $executionTable->addColumn('execution_parent', 'integer', array('notnull' => false));
         $executionTable->addColumn('execution_started', 'datetime');
         $executionTable->addColumn('execution_suspended', 'datetime', array('notnull' => false));
-        $executionTable->addColumn('execution_variables', 'text', array('notnull' => false));
-        $executionTable->addColumn('execution_waiting_for', 'text', array('notnull' => false));
-        $executionTable->addColumn('execution_threads', 'text', array('notnull' => false));
+        $executionTable->addColumn('execution_variables', 'text', array('notnull' => false, "length" => null));
+        $executionTable->addColumn('execution_waiting_for', 'text', array('notnull' => false, "length" => null));
+        $executionTable->addColumn('execution_threads', 'text', array('notnull' => false, "length" => null));
         $executionTable->addColumn('execution_next_thread_id', 'integer');
         $executionTable->addColumn('execution_next_poll_date', 'datetime', array('notnull' => false));
         $executionTable->addColumn('execution_entity_name', 'string', array('notnull' => false));
@@ -106,8 +111,8 @@ class SchemaBuilder
         $executionStateTable = $schema->createTable($options->executionStateTable());
         $executionStateTable->addColumn('execution_id', 'integer');
         $executionStateTable->addColumn('node_id', 'integer');
-        $executionStateTable->addColumn('node_state', 'text', array('notnull' => false));
-        $executionStateTable->addColumn('node_activated_from', 'text', array('notnull' => false));
+        $executionStateTable->addColumn('node_state', 'text', array('notnull' => false, "length" => null));
+        $executionStateTable->addColumn('node_activated_from', 'text', array('notnull' => false, "length" => null));
         $executionStateTable->addColumn('node_thread_id', 'integer');
         $executionStateTable->setPrimaryKey(array('execution_id', 'node_id'));
         $executionStateTable->addForeignKeyConstraint($options->executionTable(), array('execution_id'), array('execution_id'));

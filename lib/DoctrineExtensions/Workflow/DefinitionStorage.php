@@ -70,13 +70,13 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         $stmt->bindParam(2, $workflowVersion);
         $stmt->execute();
 
-        $result = $stmt->fetchAll( PDO::FETCH_ASSOC );
+        $result = $stmt->fetchAll( \PDO::FETCH_ASSOC );
 
         if ( $result !== false && isset( $result[0] ) ) {
             $result[0] = array_change_key_case($result[0], \CASE_LOWER);
             $workflowId = $result[0]['workflow_id'];
         } else {
-            throw new ezcWorkflowDefinitionStorageException('Could not load workflow definition.');
+            throw new \ezcWorkflowDefinitionStorageException('Could not load workflow definition.');
         }
 
         return $this->loadWorkflow($workflowId, $workflowName, $workflowVersion);
@@ -112,7 +112,7 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             $workflowName = $result[0]['workflow_name'];
             $workflowVersion = $result[0]['workflow_version'];
         } else {
-            throw new ezcWorkflowDefinitionStorageException('Could not load workflow definition.');
+            throw new \ezcWorkflowDefinitionStorageException('Could not load workflow definition.');
         }
 
         return $this->loadWorkflow($workflowId, $workflowName, $workflowVersion);

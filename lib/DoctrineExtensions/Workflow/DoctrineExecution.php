@@ -23,11 +23,6 @@ class DoctrineExecution extends \ezcWorkflowExecution
     private $conn;
 
     /**
-     * @var DefinitionStorage
-     */
-    private $storage = null;
-
-    /**
      * @var WorkflowOptions
      */
     private $options = null;
@@ -40,7 +35,7 @@ class DoctrineExecution extends \ezcWorkflowExecution
     public function __construct(Connection $conn, DefinitionStorage $storage, $executionId = null)
     {
         $this->conn = $conn;
-        $this->storage = $storage;
+        $this->definitionStorage = $storage;
         $this->options = $storage->getOptions();
 
         if ($executionId !== null) {
@@ -131,9 +126,11 @@ class DoctrineExecution extends \ezcWorkflowExecution
 
     protected function doGetSubExecution($id = null)
     {
-        $execution = new self( $this->conn, $this->options );
-        $execution->loadExecution($id);
-        return $execution;
+        if (is_numeric($id)) {
+            $id = (int)$id;
+        }
+
+        return new self( $this->conn, $this->definitionStorage, $id );
     }
 
     protected function doSuspend()
@@ -162,6 +159,7 @@ class DoctrineExecution extends \ezcWorkflowExecution
             'execution_next_poll_date' => $executionNextPollDate,
         );
 
+        $this->cleanUpExecutionStateTable();
         $this->conn->update($this->options->executionTable(), $data, array('execution_id' => (int)$this->id));
 
         foreach ($this->activatedNodes AS $node) {
@@ -197,14 +195,14 @@ class DoctrineExecution extends \ezcWorkflowExecution
 
         $execution = array_change_key_case($result[0], \CASE_LOWER);
 
-        $this->id = $execution['execution_id'];
+        $this->id = (int)$execution['execution_id'];
         $this->nextThreadId = $execution['execution_next_thread_id'];
 
         $this->variables = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_variables']);
         $this->waitingFor = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_waiting_for']);
         $this->threads = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_threads']);
 
-        $this->workflow = $this->storage->loadById($execution['workflow_id']);
+        $this->workflow = $this->definitionStorage->loadById($execution['workflow_id']);
 
         $sql = 'SELECT * FROM ' . $this->options->executionStateTable() . ' WHERE execution_id = ?';
         $stmt = $this->conn->prepare($sql);

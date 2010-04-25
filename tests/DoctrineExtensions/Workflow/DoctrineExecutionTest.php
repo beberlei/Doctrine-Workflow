@@ -34,7 +34,7 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
         try {
             $schemaBuilder->dropWorkflowSchema($this->options);
         } catch(\PDOException $e) {
-            echo $e->getMessage();
+            echo $e->getMessage() . "\n";
         }
         $schemaBuilder->createWorkflowSchema($this->options);
         $this->storage = new DefinitionStorage($this->conn, $this->options);

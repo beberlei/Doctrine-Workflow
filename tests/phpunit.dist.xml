@@ -3,6 +3,7 @@
     <php>
         <var name="doctrine2-path" value="" />
         <var name="ezc-base-file" value="" />
+        <var name="ezc-workflow-tests-dir" value="" />
         <var name="DC2_DRIVER" value="pdo_sqlite" />
         <var name="DC2_DBNAME" value="" />
         <var name="DC2_USER" value="" />
