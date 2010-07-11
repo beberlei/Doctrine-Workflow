@@ -17,6 +17,8 @@ class SerializerTest extends \PHPUnit_Framework_TestCase
             array(array('foo' => 'bar'),    array('foo' => 'bar'),      array()),
             array(array('foo' => 'bar'),    array('foo' => 'bar'),      null),
             array(array('c' => "\xc9\x80"), array('c' => "\xc9\x80"),   null),
+            // empty object instances exist in ezcWorkflow!!
+            array(array('c' => new \stdClass()), array('c' => new \stdClass()), null),
         );
     }
 
@@ -39,15 +41,6 @@ class SerializerTest extends \PHPUnit_Framework_TestCase
         }
 
         $z = new WddxSerializer();
-        $this->assertEquals($expectedValue, $z->unserialize($z->serialize($value), $defaultValue));
-    }
-
-    /**
-     * @dataProvider dataSerialize
-     */
-    public function testJsonSerializer($value, $expectedValue, $defaultValue)
-    {
-        $z = new JsonSerializer();
         $this->assertEquals($expectedValue, $z->unserialize($z->serialize($value), $defaultValue));
     }
 }

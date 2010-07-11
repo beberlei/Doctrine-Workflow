@@ -26,10 +26,18 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
      */
     private $storage;
 
+    public function createSerializer()
+    {
+        if (isset($GLOBALS['DOCTRINE_WORKFLOW_SERIALIZER_IMPL'])) {
+            return new $GLOBALS['DOCTRINE_WORKFLOW_SERIALIZER_IMPL']();
+        }
+        return null;
+    }
+
     public function setUp()
     {
         $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
-        $this->options = new WorkflowOptions('test_');
+        $this->options = new WorkflowOptions('test_', null, null, $this->createSerializer());
         TestHelper::createSchema($this->options);
         $this->storage = new DefinitionStorage($this->conn, $this->options);
     }

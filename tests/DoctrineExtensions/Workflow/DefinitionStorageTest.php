@@ -7,10 +7,18 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
     private $conn;
     private $options;
 
+    public function createSerializer()
+    {
+        if (isset($GLOBALS['DOCTRINE_WORKFLOW_SERIALIZER_IMPL'])) {
+            return new $GLOBALS['DOCTRINE_WORKFLOW_SERIALIZER_IMPL']();
+        }
+        return null;
+    }
+
     public function setUp()
     {
         $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
-        $this->options = new WorkflowOptions('test_');
+        $this->options = new WorkflowOptions('test_', null, null, $this->createSerializer());
         TestHelper::createSchema($this->options);
     }
 

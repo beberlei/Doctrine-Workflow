@@ -133,17 +133,12 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         foreach ( $result as $node ) {
             $node = array_change_key_case($node, \CASE_LOWER);
 
-            $configuration = \ezcWorkflowDatabaseUtil::unserialize(
-                    $node['node_configuration'], null
-            );
+            $configuration = $this->options->getSerializer()->unserialize($node['node_configuration'], null);
 
             if ( is_null( $configuration ) ) {
                 $configuration = \ezcWorkflowUtil::getDefaultConfiguration( $node['node_class'] );
             }
 
-            /*$nodes[$node['node_id']] = new $node['node_class'](
-                    $configuration
-            );*/
             $nodes[$node['node_id']] = $this->options->getNodeFactory()->createNode($node['node_class'], $configuration);
 
             if ($nodes[$node['node_id']] instanceof \ezcWorkflowNodeFinally &&
@@ -264,7 +259,7 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                 $this->conn->insert($this->options->nodeTable(), array(
                     'workflow_id' => (int)$workflow->id,
                     'node_class' => get_class($node),
-                    'node_configuration' => \ezcWorkflowDatabaseUtil::serialize( $node->getConfiguration() ),
+                    'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
                 ));
 
                 $nodeId = $this->conn->lastInsertId();

@@ -100,8 +100,6 @@ class SchemaBuilder
         $executionTable->addColumn('execution_threads', 'text', array('notnull' => false, "length" => null));
         $executionTable->addColumn('execution_next_thread_id', 'integer');
         $executionTable->addColumn('execution_next_poll_date', 'datetime', array('notnull' => false));
-        $executionTable->addColumn('execution_entity_name', 'string', array('notnull' => false));
-        $executionTable->addColumn('execution_entity_id', 'integer', array('notnull' => false));
 
         $executionTable->setPrimaryKey(array('execution_id'));
         $executionTable->addIndex(array('execution_parent'));

@@ -16,15 +16,30 @@ class TestHelper
     {
         $conn = self::getConnection();
 
-        $schemaBuilder = new SchemaBuilder($conn);
-        try {
-            $schemaBuilder->dropWorkflowSchema($options);
-        } catch(\PDOException $e) {
+        if (!isset(self::$schema[$options->getTablePrefix()])) {
+            $schemaBuilder = new SchemaBuilder($conn);
+            try {
+                $schemaBuilder->dropWorkflowSchema($options);
+            } catch(\PDOException $e) {
 
+            }
+            $schemaBuilder->createWorkflowSchema($options);
+            
+            self::$schema[$options->getTablePrefix()] = true;
         }
-        $schemaBuilder->createWorkflowSchema($options);
 
-        self::$schema[$options->getTablePrefix()] = true;
+        $platform = $conn->getDatabasePlatform();
+        $tables = array(
+            $options->executionStateTable(),
+            $options->executionTable(),
+            $options->variableHandlerTable(),
+            $options->nodeConnectionTable(),
+            $options->nodeTable(),
+            $options->workflowTable(),
+        );
+        foreach ($tables AS $table) {
+            $conn->executeUpdate($platform->getTruncateTableSQL($table));
+        }
     }
 
     static public function getConnection()

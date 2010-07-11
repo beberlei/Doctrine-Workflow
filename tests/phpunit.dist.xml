@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="./DoctrineExtensions/Workflow/TestHelper.php">
     <php>
+        <var name="DOCTRINE_WORKFLOW_SERIALIZER_IMPL" value="DoctrineExtensions\Workflow\Util\Serialize\ZetaSerializer" />
         <var name="doctrine2-common-path" value="" />
         <var name="doctrine2-dbal-path" value="" />
         <var name="ezc-base-file" value="" />

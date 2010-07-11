@@ -50,15 +50,6 @@ class DoctrineExecution extends \ezcWorkflowExecution
         $platform = $this->conn->getDatabasePlatform();
 
         $variables = $this->variables;
-        $executionEntityName = null;
-        $executionEntityId = null;
-
-        if (isset($variables['entityName'])) {
-            $executionEntityName = $variables['entityName'];
-        }
-        if (isset($variables['entityId'])) {
-            $executionEntityId = $variables['entityId'];
-        }
 
         $executionNextPollDate = null;
         if (isset($variables['batchWaitInterval'])) {
@@ -67,22 +58,22 @@ class DoctrineExecution extends \ezcWorkflowExecution
             }
 
             $executionNextPollDate = new \DateTime("now");
-            $executionNextPollDate->add($variables['waitInterval']);
+            $executionNextPollDate->add($variables['batchWaitInterval']);
             $executionNextPollDate = $executionNextPollDate->format($platform->getDateTimeFormatString());
         }
 
+        $serializer = $this->options->getSerializer();
+
         $now = new \DateTime("now");
         $data = array(
-            'workflow_id' => (int)$this->workflow->id,
-            'execution_parent' => $parentId,
-            'execution_started' => $now->format($platform->getDateTimeFormatString()),
-            'execution_variables' => \ezcWorkflowDatabaseUtil::serialize($variables),
-            'execution_waiting_for' => \ezcWorkflowDatabaseUtil::serialize($this->waitingFor),
-            'execution_threads' => \ezcWorkflowDatabaseUtil::serialize($this->threads),
-            'execution_next_thread_id' => (int)$this->nextThreadId,
-            'execution_entity_name' => $executionEntityName,
-            'execution_entity_id' => $executionEntityId,
-            'execution_next_poll_date' => $executionNextPollDate,
+            'workflow_id'               => (int)$this->workflow->id,
+            'execution_parent'          => $parentId,
+            'execution_started'         => $now->format($platform->getDateTimeFormatString()),
+            'execution_variables'       => $serializer->serialize($variables),
+            'execution_waiting_for'     => $serializer->serialize($this->waitingFor),
+            'execution_threads'         => $serializer->serialize($this->threads),
+            'execution_next_thread_id'  => (int)$this->nextThreadId,
+            'execution_next_poll_date'  => $executionNextPollDate,
         );
         $this->conn->insert($this->options->executionTable(), $data);
 
@@ -149,14 +140,16 @@ class DoctrineExecution extends \ezcWorkflowExecution
             $executionNextPollDate = $executionNextPollDate->format($platform->getDateTimeFormatString());
         }
 
+        $serializer = $this->options->getSerializer();
+
         $now = new \DateTime("now");
         $data = array(
-            'execution_suspended' => $now->format($platform->getDateTimeFormatString()),
-            'execution_variables' => \ezcWorkflowDatabaseUtil::serialize($variables),
-            'execution_waiting_for' => \ezcWorkflowDatabaseUtil::serialize($this->waitingFor),
-            'execution_threads' => \ezcWorkflowDatabaseUtil::serialize($this->threads),
-            'execution_next_thread_id' => (int)$this->nextThreadId,
-            'execution_next_poll_date' => $executionNextPollDate,
+            'execution_suspended'       => $now->format($platform->getDateTimeFormatString()),
+            'execution_variables'       => $serializer->serialize($variables),
+            'execution_waiting_for'     => $serializer->serialize($this->waitingFor),
+            'execution_threads'         => $serializer->serialize($this->threads),
+            'execution_next_thread_id'  => (int)$this->nextThreadId,
+            'execution_next_poll_date'  => $executionNextPollDate,
         );
 
         $this->cleanUpExecutionStateTable();
@@ -164,11 +157,11 @@ class DoctrineExecution extends \ezcWorkflowExecution
 
         foreach ($this->activatedNodes AS $node) {
             $data = array(
-                'execution_id' => (int)$this->id,
-                'node_id' => (int)$node->getId(),
-                'node_state' => \ezcWorkflowDatabaseUtil::serialize( $node->getState() ),
-                'node_activated_from' => \ezcWorkflowDatabaseUtil::serialize( $node->getActivatedFrom() ),
-                'node_thread_id' => $node->getThreadId(),
+                'execution_id'          => (int)$this->id,
+                'node_id'               => (int)$node->getId(),
+                'node_state'            => $serializer->serialize( $node->getState() ),
+                'node_activated_from'   => $serializer->serialize( $node->getActivatedFrom() ),
+                'node_thread_id'        => $node->getThreadId(),
             );
             $this->conn->insert($this->options->executionStateTable(), $data);
         }
@@ -198,9 +191,11 @@ class DoctrineExecution extends \ezcWorkflowExecution
         $this->id = (int)$execution['execution_id'];
         $this->nextThreadId = $execution['execution_next_thread_id'];
 
-        $this->variables = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_variables']);
-        $this->waitingFor = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_waiting_for']);
-        $this->threads = \ezcWorkflowDatabaseUtil::unserialize($execution['execution_threads']);
+        $serializer = $this->options->getSerializer();
+
+        $this->variables    = $serializer->unserialize($execution['execution_variables']);
+        $this->waitingFor   = $serializer->unserialize($execution['execution_waiting_for']);
+        $this->threads      = $serializer->unserialize($execution['execution_threads']);
 
         $this->workflow = $this->definitionStorage->loadById($execution['workflow_id']);
 
@@ -216,9 +211,9 @@ class DoctrineExecution extends \ezcWorkflowExecution
             $row = array_change_key_case($row, \CASE_LOWER);
             
             $active[$row['node_id']] = array(
-                'activated_from' => \ezcWorkflowDatabaseUtil::unserialize($row['node_activated_from']),
-                'state' => \ezcWorkflowDatabaseUtil::unserialize($row['node_state'], null),
-                'thread_id' => $row['node_thread_id'],
+                'activated_from'    => $serializer->unserialize($row['node_activated_from']),
+                'state'             => $serializer->unserialize($row['node_state'], null),
+                'thread_id'         => $row['node_thread_id'],
             );
         }
 
