@@ -90,17 +90,18 @@ more powerful services. You can extend the NodeFactory to support this:
 
 Start a workflow and retrieve the execution id when it gets supsened
 
-    use DoctrineExtensions\Workflow\DoctrineExecution;
+    use DoctrineExtensions\Workflow\DoctrineExecutionRepository;
 
-    $execution = new DoctrineExecution($conn, $storage);
-    $execution->workflow = $workflow;
+    $repository = new DoctrineExecutionRepository($conn, $storage);
+    $execution = $repository->createExecution($workflow);
     $executionId = $execution->start();
 
 Resume an operation for a given Execution Id.
 
-    use DoctrineExtensions\Workflow\DoctrineExecution;
+    use DoctrineExtensions\Workflow\DoctrineExecutionRepository;
 
-    $execution = new DoctrineExecution($conn, $defStorage, $executionId);
+    $repository = new DoctrineExecutionRepository($conn, $storage);
+    $execution = $repository->loadExecution($executionId);
     $execution->resume(array('choice' => true));
 
 ### Batch-Jobs for Resuming Execution
