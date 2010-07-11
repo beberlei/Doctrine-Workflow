@@ -84,7 +84,30 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
     public function testWorkflowIdentityMap()
     {
+        $workflow = new \ezcWorkflow('IdentityTest');
+        $workflow->startNode->addOutNode($workflow->endNode);
+        
         $def = new DefinitionStorage($this->conn, $this->options);
+        $def->save($workflow);
+
+        $this->assertSame($workflow, $def->loadById($workflow->id));
+        $this->assertSame($def->loadById($workflow->id), $def->loadById($workflow->id));
+    }
+
+    public function testDeleteWorkflow()
+    {
+        $variableHandler = $this->getMock('ezcWorkflowVariableHandler');
+        $workflow = new \ezcWorkflow('IdentityTest');
+        $workflow->startNode->addOutNode($workflow->endNode);
+        $workflow->addVariableHandler('foo', get_class($variableHandler));
+
+        $def = new DefinitionStorage($this->conn, $this->options);
+        $def->save($workflow);
+
+        $def->delete($workflow->id);
+
+        $this->setExpectedException('ezcWorkflowDefinitionStorageException', 'Could not load workflow definition.');
+        $def->loadById($workflow->id);
     }
 }
 

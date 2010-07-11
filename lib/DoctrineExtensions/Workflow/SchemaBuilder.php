@@ -67,7 +67,7 @@ class SchemaBuilder
         $nodeTable->addColumn('node_configuration', 'text', array('notnull' => false, "length" => null));
         $nodeTable->setPrimaryKey(array('node_id'));
         $nodeTable->addIndex(array('workflow_id'));
-        $nodeTable->addForeignKeyConstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'));
+        $nodeTable->addForeignKeyConstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'), array('onDelete' => 'CASCADE'));
 
         $connectionTable = $schema->createTable($options->nodeConnectionTable());
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
@@ -77,14 +77,15 @@ class SchemaBuilder
         $connectionTable->addColumn('incoming_node_id', 'integer');
         $connectionTable->addColumn('outgoing_node_id', 'integer');
         $connectionTable->setPrimaryKey(array('id'));
-        $connectionTable->addForeignKeyConstraint($options->nodeTable(), array('incoming_node_id'), array('node_id'));
-        $connectionTable->addForeignKeyConstraint($options->nodeTable(), array('outgoing_node_id'), array('node_id'));
+        $connectionTable->addForeignKeyConstraint($options->nodeTable(), array('incoming_node_id'), array('node_id'), array('onDelete' => 'CASCADE'));
+        $connectionTable->addForeignKeyConstraint($options->nodeTable(), array('outgoing_node_id'), array('node_id'), array('onDelete' => 'CASCADE'));
 
         $variableHandlerTable = $schema->createTable($options->variableHandlerTable());
         $variableHandlerTable->addColumn('workflow_id', 'integer');
         $variableHandlerTable->addColumn('variable', 'string');
         $variableHandlerTable->addColumn('class', 'string');
         $variableHandlerTable->setPrimaryKey(array('workflow_id', 'variable'));
+        $variableHandlerTable->addForeignKeyconstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'));
 
         $executionTable = $schema->createTable($options->executionTable());
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
@@ -100,6 +101,7 @@ class SchemaBuilder
         $executionTable->addColumn('execution_threads', 'text', array('notnull' => false, "length" => null));
         $executionTable->addColumn('execution_next_thread_id', 'integer');
         $executionTable->addColumn('execution_next_poll_date', 'datetime', array('notnull' => false));
+        $executionTable->addIndex(array('execution_next_poll_date'));
 
         $executionTable->setPrimaryKey(array('execution_id'));
         $executionTable->addIndex(array('execution_parent'));

@@ -28,6 +28,11 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
     private $options;
 
     /**
+     * @var array
+     */
+    private $identityMap = array();
+
+    /**
      * @param Connection $conn
      * @param WorkflowOptions $options
      */
@@ -122,6 +127,11 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
      */
     protected function loadWorkflow($workflowId, $workflowName, $workflowVersion)
     {
+        $workflowId = (int)$workflowId;
+        if (isset($this->identityMap[$workflowId])) {
+            return $this->identityMap[$workflowId];
+        }
+
         $sql = "SELECT node_id, node_class, node_configuration FROM " . $this->options->nodeTable() . " WHERE workflow_id = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $workflowId);
@@ -187,6 +197,8 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         $workflow->id = (int)$workflowId;
         $workflow->version = (int)$workflowVersion;
 
+        $this->identityMap[$workflow->id] = $workflow;
+
         $sql = "SELECT variable, class FROM " . $this->options->variableHandlerTable() . " WHERE workflow_id = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $workflowId);
@@ -250,6 +262,8 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             $workflow->id = (int)$this->conn->lastInsertId();
             $workflow->definitionStorage = $this;
 
+            $this->identityMap[$workflow->id] = $workflow;
+
             // Write node table rows.
             $nodeMap = array();
 
@@ -310,7 +324,10 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
 
     protected function getCurrentVersion($name)
     {
-        $sql = "SELECT MAX(workflow_version) AS version FROM " . $this->options->workflowTable() . " WHERE workflow_name = ?";
+        $platform = $this->conn->getDatabasePlatform();
+
+        $sql = "SELECT MAX(workflow_version) AS version FROM " . $this->options->workflowTable() . " ".
+               "WHERE workflow_name = ? " . $platform->getForUpdateSQL();
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $name);
         $stmt->execute();
@@ -323,5 +340,44 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         } else {
             return 0;
         }
+    }
+
+    /**
+     * Delete a workflow by its ID
+     *
+     * @param int $workflowId
+     * @return void
+     */
+    public function delete($workflowId)
+    {
+        $this->conn->beginTransaction();
+        try {
+            // delete only those two, the rest should be deleted automatically through cascading foreign keys
+            $this->conn->delete($this->options->variableHandlerTable(), array('workflow_id' => $workflowId));
+            $this->conn->delete($this->options->workflowTable(), array('workflow_id' => $workflowId));
+
+            $this->conn->commit();
+        } catch(\Exception $e) {
+            $this->conn->rollback();
+        }
+    }
+
+    /**
+     * Get Ids of all Workflows that are not in use anymore in any execution and marked as outdated.
+     *
+     * @return array
+     */
+    public function getUnusedWorkflowIds()
+    {
+        $sql = 'SELECT w.workflow_id FROM ' . $this->options->workflowTable() . ' w ' .
+               'WHERE w.workflow_id NOT IN ( SELECT DISTINCT e.workflow_id FROM ' . $this->options->executionTable() . ') ' .
+               ' AND w.workflow_outdated = 1';
+        $stmt = $this->conn->query();
+
+        $workflowIds = array();
+        while ($workflowId = $stmt->fetchColumn()) {
+            $workflowIds[] = $workflowId;
+        }
+        return $workflowIds;
     }
 }
