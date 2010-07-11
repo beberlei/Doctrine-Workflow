@@ -56,7 +56,7 @@ You can load a workflow by querying for its Workflow Id:
 
 Removing a workflow from the database is very simple also, you can do it by ID:
 
-    $def->remove($workflow->id);
+    $def->delete($workflow->id);
 
 ### Cleaning up unused Workflows
 
