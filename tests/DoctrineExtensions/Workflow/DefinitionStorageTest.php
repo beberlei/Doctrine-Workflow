@@ -9,15 +9,9 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->conn = \DoctrineExtensions\TestHelper::getConnection();
+        $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
         $this->options = new WorkflowOptions('test_');
-        $schemaBuilder = new SchemaBuilder($this->conn);
-        try {
-            $schemaBuilder->dropWorkflowSchema($this->options);
-        } catch(\PDOException $e) {
-            
-        }
-        $schemaBuilder->createWorkflowSchema($this->options);
+        TestHelper::createSchema($this->options);
     }
 
     public function testSaveNodes()
@@ -78,6 +72,11 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
         $persistedWorkflow = $def->loadById($workflow->id);
         $this->assertEquals($workflow, $persistedWorkflow, "The persisted workflow has to be exactly equal to the orignal one after loading.");
+    }
+
+    public function testWorkflowIdentityMap()
+    {
+        $def = new DefinitionStorage($this->conn, $this->options);
     }
 }
 

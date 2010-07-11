@@ -45,11 +45,6 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         return $this->options;
     }
 
-    public function getActiveWorkflows()
-    {
-        
-    }
-
     /**
      * Load a workflow definition by name.
      *
@@ -118,6 +113,13 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         return $this->loadWorkflow($workflowId, $workflowName, $workflowVersion);
     }
 
+    /**
+     *
+     * @param  int $workflowId
+     * @param  string $workflowName
+     * @param  int $workflowVersion
+     * @return \ezcWorkflow
+     */
     protected function loadWorkflow($workflowId, $workflowName, $workflowVersion)
     {
         $sql = "SELECT node_id, node_class, node_configuration FROM " . $this->options->nodeTable() . " WHERE workflow_id = ?";
@@ -139,9 +141,10 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                 $configuration = \ezcWorkflowUtil::getDefaultConfiguration( $node['node_class'] );
             }
 
-            $nodes[$node['node_id']] = new $node['node_class'](
+            /*$nodes[$node['node_id']] = new $node['node_class'](
                     $configuration
-            );
+            );*/
+            $nodes[$node['node_id']] = $this->options->getNodeFactory()->createNode($node['node_class'], $configuration);
 
             if ($nodes[$node['node_id']] instanceof \ezcWorkflowNodeFinally &&
                     !isset( $finallyNode ) ) {

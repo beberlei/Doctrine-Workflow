@@ -26,14 +26,20 @@ class WorkflowOptions
     private $workflowClass = 'ezcWorkflow';
 
     /**
+     * @var NodeFactory
+     */
+    private $nodeFactory = null;
+
+    /**
      *
      * @param string $prefix
      * @param string $workflowClassName
      */
-    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow')
+    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow', NodeFactory $nodeFactory = null)
     {
         $this->prefix = $prefix;
-        $this->workflowClass = $workflowClassName;
+        $this->workflowClass = ($workflowClassName) ?: 'ezcWorkflow';
+        $this->nodeFactory = ($nodeFactory) ?: new NodeFactory();
     }
 
     public function getTablePrefix()
@@ -74,5 +80,13 @@ class WorkflowOptions
     public function workflowClassName()
     {
         return $this->workflowClass;
+    }
+
+    /**
+     * @return NodeFactory
+     */
+    public function getNodeFactory()
+    {
+        return $this->nodeFactory;
     }
 }

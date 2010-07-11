@@ -28,15 +28,9 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->conn = \DoctrineExtensions\TestHelper::getConnection();
+        $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
         $this->options = new WorkflowOptions('test_');
-        $schemaBuilder = new SchemaBuilder($this->conn);
-        try {
-            $schemaBuilder->dropWorkflowSchema($this->options);
-        } catch(\PDOException $e) {
-            echo $e->getMessage() . "\n";
-        }
-        $schemaBuilder->createWorkflowSchema($this->options);
+        TestHelper::createSchema($this->options);
         $this->storage = new DefinitionStorage($this->conn, $this->options);
     }
 

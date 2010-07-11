@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="./DoctrineExtensions/TestHelper.php">
+<phpunit bootstrap="./DoctrineExtensions/Workflow/TestHelper.php">
     <php>
-        <var name="doctrine2-path" value="" />
+        <var name="doctrine2-common-path" value="" />
+        <var name="doctrine2-dbal-path" value="" />
         <var name="ezc-base-file" value="" />
         <var name="ezc-workflow-tests-dir" value="" />
         <var name="DC2_DRIVER" value="pdo_sqlite" />

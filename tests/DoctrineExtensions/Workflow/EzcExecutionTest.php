@@ -12,15 +12,9 @@ class EzcExecutionTest extends \ezcWorkflowTestCase
     {
         parent::setUp();
 
-        $this->conn = \DoctrineExtensions\TestHelper::getConnection();
+        $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
         $this->options = new WorkflowOptions('test_');
-        $schemaBuilder = new SchemaBuilder($this->conn);
-        try {
-            $schemaBuilder->dropWorkflowSchema($this->options);
-        } catch(\PDOException $e) {
-            
-        }
-        $schemaBuilder->createWorkflowSchema($this->options);
+        TestHelper::createSchema($this->options);
 
         $this->dbStorage = new DefinitionStorage($this->conn, $this->options);
     }

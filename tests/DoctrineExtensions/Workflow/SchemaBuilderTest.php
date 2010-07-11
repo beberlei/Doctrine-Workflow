@@ -6,7 +6,7 @@ class SchemaBuilderTest extends \PHPUnit_Framework_TestCase
 {
     public function testSchemaCreate()
     {
-        $conn = \DoctrineExtensions\TestHelper::getConnection();
+        $conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
 
         $options = new WorkflowOptions('myprefix_');
         $builder = new SchemaBuilder($conn);
