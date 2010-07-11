@@ -13,6 +13,8 @@
 
 namespace DoctrineExtensions\Workflow;
 
+use DoctrineExtensions\Workflow\Util\Serialize\Serializer;
+
 class WorkflowOptions
 {
     /**
@@ -31,15 +33,21 @@ class WorkflowOptions
     private $nodeFactory = null;
 
     /**
+     * @var Serializer
+     */
+    private $serializer = null;
+
+    /**
      *
      * @param string $prefix
      * @param string $workflowClassName
      */
-    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow', NodeFactory $nodeFactory = null)
+    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow', NodeFactory $nodeFactory = null, Serializer $serializer = null)
     {
         $this->prefix = $prefix;
         $this->workflowClass = ($workflowClassName) ?: 'ezcWorkflow';
         $this->nodeFactory = ($nodeFactory) ?: new NodeFactory();
+        $this->serializer = ($serializer) ?: new Util\Serialize\ZetaSerializer();
     }
 
     public function getTablePrefix()
@@ -88,5 +96,13 @@ class WorkflowOptions
     public function getNodeFactory()
     {
         return $this->nodeFactory;
+    }
+
+    /**
+     * @return Serializer
+     */
+    public function getSerializer()
+    {
+        return $this->serializer;
     }
 }
