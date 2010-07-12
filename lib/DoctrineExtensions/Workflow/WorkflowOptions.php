@@ -30,7 +30,7 @@ class WorkflowOptions
     /**
      * @var NodeFactory
      */
-    private $nodeFactory = null;
+    private $workflowFactory = null;
 
     /**
      * @var Serializer
@@ -42,11 +42,11 @@ class WorkflowOptions
      * @param string $prefix
      * @param string $workflowClassName
      */
-    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow', NodeFactory $nodeFactory = null, Serializer $serializer = null)
+    public function __construct($prefix = '', $workflowClassName = 'ezcWorkflow', WorkflowFactory $workflowFactory = null, Serializer $serializer = null)
     {
         $this->prefix = $prefix;
         $this->workflowClass = ($workflowClassName) ?: 'ezcWorkflow';
-        $this->nodeFactory = ($nodeFactory) ?: new NodeFactory();
+        $this->workflowFactory = ($workflowFactory) ?: new WorkflowFactory();
         $this->serializer = ($serializer) ?: new Util\Serialize\ZetaSerializer();
     }
 
@@ -91,11 +91,11 @@ class WorkflowOptions
     }
 
     /**
-     * @return NodeFactory
+     * @return WorkflowFactory
      */
-    public function getNodeFactory()
+    public function getWorkflowFactory()
     {
-        return $this->nodeFactory;
+        return $this->workflowFactory;
     }
 
     /**

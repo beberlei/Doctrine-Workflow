@@ -24,7 +24,7 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
     /**
      * @var DefinitionStorage
      */
-    private $storage;
+    private $manager;
 
     public function createSerializer()
     {
@@ -39,7 +39,7 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
         $this->conn = \DoctrineExtensions\Workflow\TestHelper::getConnection();
         $this->options = new WorkflowOptions('test_', null, null, $this->createSerializer());
         TestHelper::createSchema($this->options);
-        $this->storage = new DefinitionStorage($this->conn, $this->options);
+        $this->manager = new WorkflowManager($this->conn, $this->options);
     }
 
     public function testStartToEndExecution()
@@ -47,9 +47,9 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
         $workflow = new \ezcWorkflow('Test');
         $workflow->startNode->addOutNode($workflow->endNode);
 
-        $this->storage->save($workflow);
+        $this->manager->save($workflow);
 
-        $execution = new DoctrineExecution($this->conn, $this->storage);
+        $execution = $this->manager->createExecution($workflow);
         $execution->workflow = $workflow;
         $execution->setVariable('foo', 'bar');
         $execution->setVariable('bar', 'baz');
@@ -66,13 +66,13 @@ class DoctrineExecutionTest extends \PHPUnit_Framework_TestCase
         $workflow->startNode->addOutNode($input);
         $input->addOutNode($workflow->endNode);
 
-        $this->storage->save($workflow);
+        $this->manager->save($workflow);
 
-        $execution = new DoctrineExecution($this->conn, $this->storage);
+        $execution = $this->manager->createExecution($workflow);
         $execution->workflow = $workflow;
         $executionId = $execution->start();
 
-        $execution = new DoctrineExecution($this->conn, $this->storage, $executionId);
+        $execution = $this->manager->loadExecution($executionId);
         $execution->resume(array('choice' => true));
     }
 }

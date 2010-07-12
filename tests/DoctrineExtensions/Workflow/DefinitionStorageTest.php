@@ -64,10 +64,10 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
         $workflow = new \ezcWorkflow('Test');
         $workflow->startNode->addOutNode($workflow->endNode);
 
-        $def = new DefinitionStorage($this->conn, $this->options);
-        $def->save($workflow);
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
         $workflowId1 = $workflow->id;
-        $def->save($workflow);
+        $manager->save($workflow);
         $workflowId2 = $workflow->id;
 
         $this->assertEquals($workflowId1 + 1, $workflowId2);
@@ -75,10 +75,10 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
     public function assertWorkflowPersistance(\ezcWorkflow $workflow)
     {
-        $def = new DefinitionStorage($this->conn, $this->options);
-        $def->save($workflow);
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
 
-        $persistedWorkflow = $def->loadById($workflow->id);
+        $persistedWorkflow = $manager->loadWorkflowById($workflow->id);
         $this->assertEquals($workflow, $persistedWorkflow, "The persisted workflow has to be exactly equal to the orignal one after loading.");
     }
 
@@ -87,11 +87,11 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
         $workflow = new \ezcWorkflow('IdentityTest');
         $workflow->startNode->addOutNode($workflow->endNode);
         
-        $def = new DefinitionStorage($this->conn, $this->options);
-        $def->save($workflow);
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
 
-        $this->assertSame($workflow, $def->loadById($workflow->id));
-        $this->assertSame($def->loadById($workflow->id), $def->loadById($workflow->id));
+        $this->assertSame($workflow, $manager->loadWorkflowById($workflow->id));
+        $this->assertSame($manager->loadWorkflowById($workflow->id), $manager->loadWorkflowById($workflow->id));
     }
 
     public function testDeleteWorkflow()
@@ -101,13 +101,13 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
         $workflow->startNode->addOutNode($workflow->endNode);
         $workflow->addVariableHandler('foo', get_class($variableHandler));
 
-        $def = new DefinitionStorage($this->conn, $this->options);
-        $def->save($workflow);
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
 
-        $def->delete($workflow->id);
+        $manager->deleteWorkflow($workflow->id);
 
         $this->setExpectedException('ezcWorkflowDefinitionStorageException', 'Could not load workflow definition.');
-        $def->loadById($workflow->id);
+        $manager->loadWorkflowById($workflow->id);
     }
 }
 

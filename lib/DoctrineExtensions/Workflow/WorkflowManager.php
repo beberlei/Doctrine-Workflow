@@ -13,7 +13,9 @@
 
 namespace DoctrineExtensions\Workflow;
 
-class DoctrineExecutionRepository
+use Doctrine\DBAL\Connection;
+
+class WorkflowManager implements IWorkflowManager
 {
     /**
      * @var Connection
@@ -34,11 +36,19 @@ class DoctrineExecutionRepository
      * @param Connection $conn
      * @param DefinitionStorage $storage
      */
-    public function __construct(Connection $conn, DefinitionStorage $storage)
+    public function __construct(Connection $conn, WorkflowOptions $options)
     {
         $this->conn = $conn;
-        $this->definitionStorage = $storage;
-        $this->options = $storage->getOptions();
+        $this->options = $options;
+        $this->definitionStorage = new DefinitionStorage($conn, $options);
+    }
+
+    /**
+     * @return \ezcWorkflowDefinitionStorage
+     */
+    public function getDefinitionStorage()
+    {
+        return $this->definitionStorage;
     }
 
     /**
@@ -58,9 +68,18 @@ class DoctrineExecutionRepository
      */
     public function createExecution(\ezcWorkflow $workflow)
     {
-        $execution = new DoctrineExceution($this->conn, $this->definitionStorage);
+        $execution = new DoctrineExecution($this->conn, $this->definitionStorage);
         $execution->workflow = $workflow;
         return $execution;
+    }
+
+    /**
+     * @param  int $workflowId
+     * @return DoctrineExecution
+     */
+    public function createExecutionByWorkflowId($workflowId)
+    {
+        return $this->createExecution($this->definitionStorage->loadById($workflowId));
     }
 
     /**
@@ -89,5 +108,34 @@ class DoctrineExecutionRepository
             $executionIds[] = $executionId;
         }
         return $executionIds;
+    }
+
+    public function deleteWorkflow($workflowId)
+    {
+        return $this->definitionStorage->delete($workflowId);
+    }
+
+    public function getUnusedWorkflowIds()
+    {
+        $sql = 'SELECT w.workflow_id FROM ' . $this->options->workflowTable() . ' w ' .
+               'WHERE w.workflow_id NOT IN ( SELECT DISTINCT e.workflow_id FROM ' . $this->options->executionTable() . ') ' .
+               ' AND w.workflow_outdated = 1';
+        $stmt = $this->conn->query();
+
+        $workflowIds = array();
+        while ($workflowId = $stmt->fetchColumn()) {
+            $workflowIds[] = $workflowId;
+        }
+        return $workflowIds;
+    }
+
+    public function loadWorkflowById($workflowId)
+    {
+        return $this->definitionStorage->loadById($workflowId);
+    }
+
+    public function save(\ezcWorkflow $workflow)
+    {
+        $this->definitionStorage->save($workflow);
     }
 }

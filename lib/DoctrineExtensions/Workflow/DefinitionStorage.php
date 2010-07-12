@@ -89,8 +89,6 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
      * optional second parameter saves a database query.
      *
      * @param  int $workflowId
-     * @param  string  $workflowName
-     * @param  int $workflowVersion
      * @return ezcWorkflow
      * @throws ezcWorkflowDefinitionStorageException
      * @throws ezcDbException
@@ -149,7 +147,7 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                 $configuration = \ezcWorkflowUtil::getDefaultConfiguration( $node['node_class'] );
             }
 
-            $nodes[$node['node_id']] = $this->options->getNodeFactory()->createNode($node['node_class'], $configuration);
+            $nodes[$node['node_id']] = $this->options->getWorkflowFactory()->createNode($node['node_class'], $configuration);
 
             if ($nodes[$node['node_id']] instanceof \ezcWorkflowNodeFinally &&
                     !isset( $finallyNode ) ) {
@@ -360,24 +358,5 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         } catch(\Exception $e) {
             $this->conn->rollback();
         }
-    }
-
-    /**
-     * Get Ids of all Workflows that are not in use anymore in any execution and marked as outdated.
-     *
-     * @return array
-     */
-    public function getUnusedWorkflowIds()
-    {
-        $sql = 'SELECT w.workflow_id FROM ' . $this->options->workflowTable() . ' w ' .
-               'WHERE w.workflow_id NOT IN ( SELECT DISTINCT e.workflow_id FROM ' . $this->options->executionTable() . ') ' .
-               ' AND w.workflow_outdated = 1';
-        $stmt = $this->conn->query();
-
-        $workflowIds = array();
-        while ($workflowId = $stmt->fetchColumn()) {
-            $workflowIds[] = $workflowId;
-        }
-        return $workflowIds;
     }
 }

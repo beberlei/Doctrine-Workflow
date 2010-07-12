@@ -236,4 +236,29 @@ class DoctrineExecution extends \ezcWorkflowExecution
         $this->resumed   = false;
         $this->suspended = true;
     }
+
+    /**
+     * Loads data from variable handlers and
+     * merge it with the current execution data.
+     */
+    protected function loadFromVariableHandlers()
+    {
+        foreach ($this->workflow->getVariableHandlers() as $variableName => $className) {
+            $object = $this->options->getWorkflowFactory()->createVariableHandler($className);
+            $this->setVariable($variableName, $object->load($this, $variableName));
+        }
+    }
+
+    /**
+     * Saves data to execution data handlers.
+     */
+    protected function saveToVariableHandlers()
+    {
+        foreach ($this->workflow->getVariableHandlers() as $variableName => $className) {
+            if (isset($this->variables[$variableName])) {
+                $object = $this->options->getWorkflowFactory()->createVariableHandler($className);
+                $object->save($this, $variableName, $this->variables[$variableName]);
+            }
+        }
+    }
 }

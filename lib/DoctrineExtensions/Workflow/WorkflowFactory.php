@@ -21,15 +21,44 @@
 namespace DoctrineExtensions\Workflow;
 
 /**
- * Factory that creates the node instances required by a specific workflow.
+ * Factory that creates the node, variable handler and service objects instances required by a specific workflow.
  *
  * You can hook into this class to add nodes that require certain dependencies,
  * for example database services, webservices or other services.
  */
-class NodeFactory
+class WorkflowFactory
 {
+    private $entityManager;
+
+    public function __construct($entityManager = null)
+    {
+        $this->em = $entityManager;
+    }
+
+    /**
+     * @param  string $className
+     * @param  array $configuration
+     * @return \ezcWorkflowNode
+     */
     public function createNode($className, $configuration)
     {
         return new $className($configuration);
+    }
+
+    /**
+     * @param  string $className
+     * @return \ezcWorkflowVariableHandler
+     */
+    public function createVariableHandler($className)
+    {
+        if ($className == "DoctrineExtensions\Workflow\VariableHandler\EntityManagerHandler") {
+            if (!($this->entityManager instanceof \Doctrine\ORM\EntityManager)) {
+                throw new \ezcWorkflowException("EntityManagerHandler requires an EntityManager to be passed to the WorkflowFactory.");
+            }
+
+            return new $className($this->entityManager);
+        } else {
+            return new $className;
+        }
     }
 }
