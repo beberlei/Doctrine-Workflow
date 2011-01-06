@@ -115,6 +115,10 @@ after the save method was called.
 > The reason for this is simple and powerful: Workflows can be so complex
 > that changing the inner workings of one could easily break already
 > existing execution cycles of this workfow.
+>
+> This is unless you only change node configurations, variable handlers or do
+> not add more than one new node (and don't remove any nodes). In this case
+> it is possible to update an existing workflow instead of creating a new one.
 
 You can load a workflow by querying for its Workflow Id:
 
