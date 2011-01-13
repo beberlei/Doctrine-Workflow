@@ -14,6 +14,7 @@
 namespace DoctrineExtensions\Workflow\VariableHandler;
 
 use Doctrine\ORM\EntityManager;
+use ezcWorkflowExecution;
 
 /**
  * Savely serialize details about entities into the DoctrineWorkflow tables.

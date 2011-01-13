@@ -136,7 +136,7 @@ class DoctrineExecution extends \ezcWorkflowExecution
             }
 
             $executionNextPollDate = new \DateTime("now");
-            $executionNextPollDate->add($variables['waitInterval']);
+            $executionNextPollDate->add($variables['batchWaitInterval']);
             $executionNextPollDate = $executionNextPollDate->format($platform->getDateTimeFormatString());
         }
 
