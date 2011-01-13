@@ -46,10 +46,11 @@ class SchemaBuilder
         $schema = new \Doctrine\DBAL\Schema\Schema();
 
         $workflowTable = $schema->createTable($options->workflowTable());
+        $columnOptions = array();
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
-            $workflowTable->setIdGeneratorType(Table::ID_IDENTITY);
+            $columnOptions = array('autoincrement' => true);
         }
-        $workflowTable->addColumn('workflow_id', 'integer');
+        $workflowTable->addColumn('workflow_id', 'integer', $columnOptions);
         $workflowTable->addColumn('workflow_name', 'string');
         $workflowTable->addColumn('workflow_version', 'integer');
         $workflowTable->addColumn('workflow_outdated', 'integer');
@@ -58,10 +59,11 @@ class SchemaBuilder
         $workflowTable->addUniqueIndex(array('workflow_name', 'workflow_version'));
 
         $nodeTable = $schema->createTable($options->nodeTable());
+        $columnOptions = array();
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
-            $nodeTable->setIdGeneratorType(Table::ID_IDENTITY);
+            $columnOptions = array('autoincrement' => true);
         }
-        $nodeTable->addColumn('node_id', 'integer');
+        $nodeTable->addColumn('node_id', 'integer', $columnOptions);
         $nodeTable->addColumn('workflow_id', 'integer');
         $nodeTable->addColumn('node_class', 'string');
         $nodeTable->addColumn('node_configuration', 'text', array('notnull' => false, "length" => null));
@@ -70,10 +72,11 @@ class SchemaBuilder
         $nodeTable->addForeignKeyConstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'), array('onDelete' => 'CASCADE'));
 
         $connectionTable = $schema->createTable($options->nodeConnectionTable());
+        $columnOptions = array();
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
-            $connectionTable->setIdGeneratorType(Table::ID_IDENTITY);
+            $columnOptions = array('autoincrement' => true);
         }
-        $connectionTable->addColumn('id', 'integer');
+        $connectionTable->addColumn('id', 'integer', $columnOptions);
         $connectionTable->addColumn('incoming_node_id', 'integer');
         $connectionTable->addColumn('outgoing_node_id', 'integer');
         $connectionTable->setPrimaryKey(array('id'));
@@ -88,10 +91,11 @@ class SchemaBuilder
         $variableHandlerTable->addForeignKeyconstraint($options->workflowTable(), array('workflow_id'), array('workflow_id'));
 
         $executionTable = $schema->createTable($options->executionTable());
+        $columnOptions = array();
         if ($this->conn->getDatabasePlatform()->prefersIdentityColumns()) {
-            $executionTable->setIdGeneratorType(Table::ID_IDENTITY);
+            $columnOptions = array('autoincrement' => true);
         }
-        $executionTable->addColumn('execution_id', 'integer');
+        $executionTable->addColumn('execution_id', 'integer', $columnOptions);
         $executionTable->addColumn('workflow_id', 'integer');
         $executionTable->addColumn('execution_parent', 'integer', array('notnull' => false));
         $executionTable->addColumn('execution_started', 'datetime');

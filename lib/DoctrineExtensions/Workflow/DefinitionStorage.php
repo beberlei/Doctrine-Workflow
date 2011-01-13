@@ -28,9 +28,18 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
     private $options;
 
     /**
+     * Map of nodes to their database id for later saving of non-breaking new workflows.
+     * 
      * @var array
      */
-    private $identityMap = array();
+    private $nodeMap = array();
+
+    /**
+     * A map of all storage node ids found while loading a workflow.
+     *
+     * @var array
+     */
+    private $workflowNodeIds = array();
 
     /**
      * @param Connection $conn
@@ -126,9 +135,6 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
     protected function loadWorkflow($workflowId, $workflowName, $workflowVersion)
     {
         $workflowId = (int)$workflowId;
-        if (isset($this->identityMap[$workflowId])) {
-            return $this->identityMap[$workflowId];
-        }
 
         $sql = "SELECT node_id, node_class, node_configuration FROM " . $this->options->nodeTable() . " WHERE workflow_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -148,6 +154,10 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             }
 
             $nodes[$node['node_id']] = $this->options->getWorkflowFactory()->createNode($node['node_class'], $configuration);
+            $nodes[$node['node_id']]->setId($node['node_id']);
+
+            $this->nodeMap[spl_object_hash($nodes[$node['node_id']])] = $node['node_id'];
+            $this->workflowNodeIds[$workflowId][] = $node['node_id'];
 
             if ($nodes[$node['node_id']] instanceof \ezcWorkflowNodeFinally &&
                     !isset( $finallyNode ) ) {
@@ -195,8 +205,6 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         $workflow->id = (int)$workflowId;
         $workflow->version = (int)$workflowVersion;
 
-        $this->identityMap[$workflow->id] = $workflow;
-
         $sql = "SELECT variable, class FROM " . $this->options->variableHandlerTable() . " WHERE workflow_id = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $workflowId);
@@ -239,6 +247,31 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
 
         $platform = $this->conn->getDatabasePlatform();
 
+        // what mode of saving should it be? Update or Re-Generate?
+        //
+        // Conditions that an update sufficies:
+        // 1. No node has been deleted
+        // 2. No node has changed its meaning (action class or type)
+        // 3. For simplicitly only zero or one new nodes will be created.
+
+        $hasExistingNodeIds = array();
+        $newNodes = 0;
+        foreach ( $workflow->nodes as $node ) {
+            $oid = spl_object_hash($node);
+            if (!isset($this->nodeMap[$oid])) {
+                $newNodes++;
+            } else {
+                $hasExistingNodeIds[] = $this->nodeMap[$oid];
+            }
+        }
+
+        $canBeUpdate = false;
+        if ($newNodes < 2 && count(array_diff($hasExistingNodeIds, $this->workflowNodeIds[$workflow->id])) == 0 && $workflow->id) {
+            $canBeUpdate = true;
+        }
+
+        $this->workflowNodeIds[$workflow->id] = array();
+
         try {
             $this->conn->beginTransaction();
             
@@ -251,31 +284,58 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             );
 
             $date = new \DateTime("now");
-            $this->conn->insert($this->options->workflowTable(), array(
-                'workflow_name' => $workflow->name,
-                'workflow_version' => $workflowVersion,
-                'workflow_created' => $date->format($platform->getDateTimeFormatString()),
-                'workflow_outdated' => 0,
-            ));
-            $workflow->id = (int)$this->conn->lastInsertId();
-            $workflow->definitionStorage = $this;
 
-            $this->identityMap[$workflow->id] = $workflow;
+            if ($canBeUpdate) {
+                $this->conn->update($this->options->workflowTable(), array(
+                        'workflow_version' => $workflowVersion,
+                        'workflow_created' => $date->format($platform->getDateTimeFormatString()),
+                    ), array('workflow_id' => $workflow->id)
+                );
+            } else {
+                $this->conn->insert($this->options->workflowTable(), array(
+                    'workflow_name' => $workflow->name,
+                    'workflow_version' => $workflowVersion,
+                    'workflow_created' => $date->format($platform->getDateTimeFormatString()),
+                    'workflow_outdated' => 0,
+                ));
+                $workflow->id = (int)$this->conn->lastInsertId();
+                $workflow->definitionStorage = $this;
+            }
 
             // Write node table rows.
             $nodeMap = array();
 
             foreach ( $workflow->nodes as $node ) {
                 /* @var $node \ezcWorkflowNode */
+                $oid = spl_object_hash($node);
 
-                $this->conn->insert($this->options->nodeTable(), array(
-                    'workflow_id' => (int)$workflow->id,
-                    'node_class' => get_class($node),
-                    'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
-                ));
+                if ($canBeUpdate && isset($this->nodeMap[$oid])) {
+                    $nodeId = (int)$this->nodeMap[$oid];
 
-                $nodeId = $this->conn->lastInsertId();
+                    $this->conn->update($this->options->nodeTable(), array(
+                        'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
+                    ), array('node_id' => $nodeId));
+                } else {
+                    $this->conn->insert($this->options->nodeTable(), array(
+                        'workflow_id' => (int)$workflow->id,
+                        'node_class' => get_class($node),
+                        'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
+                    ));
+
+                    $nodeId = (int)$this->conn->lastInsertId();
+                }
                 $nodeMap[$nodeId] = $node;
+
+                $this->workflowNodeIds[$workflow->id][] = $nodeId;
+                $this->nodeMap[$oid] = $nodeId;
+            }
+
+            if ($canBeUpdate) {
+                // Delete all the node connections, NodeMap Keys are casted to (int) so usage here is safe.
+                $query = "DELETE FROM " . $this->options->nodeConnectionTable() . " " .
+                         "WHERE incoming_node_id IN (" . implode(",", array_keys($nodeMap)) . ") OR " .
+                         "outgoing_node_id IN (" . implode(",", array_keys($nodeMap)) . ")";
+                $this->conn->executeUpdate($query);
             }
 
             foreach ($workflow->nodes AS $node) {
@@ -305,6 +365,10 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             }
             unset($nodeMap);
 
+            if ($canBeUpdate) {
+                $this->conn->delete($this->options->variableHandlerTable(), array('workflow_id' => (int)$workflow->id));
+            }
+
             foreach ($workflow->getVariableHandlers() AS $variable => $class) {
                 $this->conn->insert($this->options->variableHandlerTable(), array(
                     'workflow_id' => (int)$workflow->id,
@@ -316,7 +380,7 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
             $this->conn->commit();
         } catch(\Exception $e) {
             $this->conn->rollBack();
-            throw new \ezcWorkflowDefinitionStorageException("Error while persistint workflow: " . $e->getMessage());
+            throw new \ezcWorkflowDefinitionStorageException("Error while persisting workflow: " . $e->getMessage());
         }
     }
 

@@ -50,27 +50,14 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
     public function testSaveVariableHandlers()
     {
-        $variableHandler = $this->getMock('ezcWorkflowVariableHandler');
 
         $workflow = new \ezcWorkflow('Test');
         $workflow->startNode->addOutNode($workflow->endNode);
+
+        $variableHandler = $this->getMock('ezcWorkflowVariableHandler');
         $workflow->addVariableHandler('foo', get_class($variableHandler));
 
         $this->assertWorkflowPersistance($workflow);
-    }
-
-    public function testWorkflowsAreNeverUpdated()
-    {
-        $workflow = new \ezcWorkflow('Test');
-        $workflow->startNode->addOutNode($workflow->endNode);
-
-        $manager = new WorkflowManager($this->conn, $this->options);
-        $manager->save($workflow);
-        $workflowId1 = $workflow->id;
-        $manager->save($workflow);
-        $workflowId2 = $workflow->id;
-
-        $this->assertEquals($workflowId1 + 1, $workflowId2);
     }
 
     public function assertWorkflowPersistance(\ezcWorkflow $workflow)
@@ -84,6 +71,8 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
     public function testWorkflowIdentityMap()
     {
+        $this->markTestSkipped('No Identity Map anymore, workflows have state that i dont fully grasp yet.');
+
         $workflow = new \ezcWorkflow('IdentityTest');
         $workflow->startNode->addOutNode($workflow->endNode);
         
@@ -108,6 +97,114 @@ class DefinitionStorageTest extends \PHPUnit_Framework_TestCase
 
         $this->setExpectedException('ezcWorkflowDefinitionStorageException', 'Could not load workflow definition.');
         $manager->loadWorkflowById($workflow->id);
+    }
+
+    public function testUpdateWorkflowWithNoChangesKeepsWorkflowId()
+    {
+        $workflow = new \ezcWorkflow('UpdateTest');
+        $workflow->startNode->addOutNode($workflow->endNode);
+
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
+
+        $workflowId = $workflow->id;
+
+        $manager->save($workflow);
+
+        $this->assertEquals($workflowId, $workflow->id);
+    }
+
+    public function testUpdateWorkflowWithOneNewNode()
+    {
+        $workflow = new \ezcWorkflow('UpdateTest2');
+        $workflow->startNode->addOutNode($workflow->endNode);
+
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
+
+        $workflowId = $workflow->id;
+
+        // add new node
+        $printAction1 = new \ezcWorkflowNodeAction(array('class' => 'DoctrinExtensions\Workflow\MyPrintAction', 'arguments' => array('Foo')));
+        $workflow->startNode->removeOutNode($workflow->endNode);
+        $workflow->startNode->addOutNode($printAction1);
+        $printAction1->addOutNode($workflow->endNode);
+
+        // add variable handler
+        $variableHandler = $this->getMock('ezcWorkflowVariableHandler');
+        $workflow->addVariableHandler('foo', get_class($variableHandler));
+
+        $manager->save($workflow);
+        $this->assertEquals($workflowId, $workflow->id);
+
+        $loadedWorkflow = $manager->loadWorkflowById($workflow->id);
+
+        $startOutNodes = $loadedWorkflow->startNode->getOutNodes();
+        $this->assertInstanceOf('ezcWorkflowNodeAction', $startOutNodes[0]);
+
+        $actionOutNodes = $startOutNodes[0]->getOutNodes();
+        $this->assertInstanceOf('ezcWorkflowNodeEnd', $actionOutNodes[0]);
+
+        $this->assertEquals(array('foo' => get_class($variableHandler)), $workflow->getVariableHandlers());
+    }
+
+    public function testUpdateWorkflowWithOneNewNodeVariableHandler()
+    {
+        $workflow = new \ezcWorkflow('UpdateTest3');
+        $workflow->startNode->addOutNode($workflow->endNode);
+
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
+
+        $workflowId = $workflow->id;
+
+        // add variable handler
+        $variableHandler = $this->getMock('ezcWorkflowVariableHandler');
+        $workflow->addVariableHandler('foo', get_class($variableHandler));
+
+        $manager->save($workflow);
+        $this->assertEquals($workflowId, $workflow->id);
+
+        $this->assertEquals(array('foo' => get_class($variableHandler)), $workflow->getVariableHandlers());
+    }
+
+    public function testUpdateWorkflowNodeConfiguration()
+    {
+        $workflow = new \ezcWorkflow('UpdateTest4');
+
+        $printAction1 = new \ezcWorkflowNodeAction(array('class' => 'DoctrinExtensions\Workflow\MyPrintAction', 'arguments' => array('Foo')));
+        $workflow->startNode->addOutNode($printAction1);
+        $printAction1->addOutNode($workflow->endNode);
+
+        $manager = new WorkflowManager($this->conn, $this->options);
+        $manager->save($workflow);
+
+        $workflowId = $workflow->id;
+
+        $reflField = new \ReflectionProperty('ezcWorkflowNodeAction', 'configuration');
+        $reflField->setAccessible(true);
+
+        $this->assertEquals(
+            array('class' => 'DoctrinExtensions\Workflow\MyPrintAction', 'arguments' => array('Foo')),
+            $reflField->getValue($printAction1)
+        );
+
+        $reflField->setValue($printAction1, array('class' => 'DoctrinExtensions\Workflow\MyPrintAction', 'arguments' => array('bar')));
+
+        $manager->save($workflow);
+
+        $this->assertEquals($workflowId, $workflow->id);
+
+        $loadedWorkflow = $manager->loadWorkflowById($workflow->id);
+
+        $startOutNodes = $loadedWorkflow->startNode->getOutNodes();
+        $this->assertInstanceOf('ezcWorkflowNodeAction', $startOutNodes[0]);
+        $printAction1 = $startOutNodes[0];
+
+        $this->assertEquals(
+            array('class' => 'DoctrinExtensions\Workflow\MyPrintAction', 'arguments' => array('bar')),
+            $reflField->getValue($printAction1)
+        );
     }
 }
 
