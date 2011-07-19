@@ -142,6 +142,8 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
         $stmt->execute();
 
         $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $this->workflowNodeIds[$workflowId] = array();
 
         // Create node objects.
         foreach ( $result as $node ) {
