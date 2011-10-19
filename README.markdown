@@ -57,7 +57,7 @@ the related [PHP Extension](http://php.net/manual/en/book.wddx.php). This
 allows to save the data in a human-readable (and editable) format.
 
     use \DoctrineExtensions\Workflow\WorkflowOptions;
-    use \DoctrineExtensions\Workflow\Util\Serializer\WddxSerializer;
+    use \DoctrineExtensions\Workflow\Util\Serialize\WddxSerializer;
 
     $serializer = new WddxSerializer();
     $options = new WorkflowOptions('prefix_', null, null, $serializer);
