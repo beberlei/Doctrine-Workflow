@@ -294,13 +294,26 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                     ), array('workflow_id' => $workflow->id)
                 );
             } else {
-                $this->conn->insert($this->options->workflowTable(), array(
+                $data = array(  
                     'workflow_name' => $workflow->name,
                     'workflow_version' => $workflowVersion,
                     'workflow_created' => $date->format($platform->getDateTimeFormatString()),
                     'workflow_outdated' => 0,
-                ));
-                $workflow->id = (int)$this->conn->lastInsertId();
+                );
+                // For sequences: get id before insert
+                if ( $platform->prefersSequences( ) ) {
+                    $id = (int) $this->conn->fetchColumn($platform->getSequenceNextValSQL($this->options->workflowSequence()));
+                    $data['workflow_id'] = $id;
+                    $workflow->id = $id;
+                }
+
+                $this->conn->insert($this->options->workflowTable(), $data);
+
+                if ( $platform->prefersIdentityColumns( ) ) {
+                    $workflow->id = (int)$this->conn->lastInsertId();
+                }
+
+
                 $workflow->definitionStorage = $this;
             }
 
@@ -318,13 +331,23 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                         'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
                     ), array('node_id' => $nodeId));
                 } else {
-                    $this->conn->insert($this->options->nodeTable(), array(
+                    $data = array(
                         'workflow_id' => (int)$workflow->id,
                         'node_class' => get_class($node),
                         'node_configuration' => $this->options->getSerializer()->serialize( $node->getConfiguration() ),
-                    ));
+                    );
 
-                    $nodeId = (int)$this->conn->lastInsertId();
+                    if ( $platform->prefersSequences( ) ) {
+                        $nodeId = (int) $this->conn->fetchColumn($platform->getSequenceNextValSQL($this->options->nodeSequence()));
+                        $data['node_id'] = $nodeId;
+                    } 
+
+                    $this->conn->insert($this->options->nodeTable(), $data);
+
+                    if ( $platform->prefersIdentityColumns( ) ) {
+                        $nodeId = (int)$this->conn->lastInsertId();
+                    }
+
                 }
                 $nodeMap[$nodeId] = $node;
 
@@ -359,10 +382,18 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
                         }
                     }
 
-                    $this->conn->insert($this->options->nodeConnectionTable(), array(
+                    $data = array( 
                         'incoming_node_id' => $incomingNodeId,
                         'outgoing_node_id' => $outgoingNodeId,
-                    ));
+                    );
+
+                    if ( $platform->prefersSequences( ) ) {
+                        $id = (int) $this->conn->fetchColumn($platform->getSequenceNextValSQL($this->options->nodeConnectionSequence()));
+                        $data['id'] = $id;
+                    } 
+
+                    $this->conn->insert($this->options->nodeConnectionTable(), $data );
+
                 }
             }
             unset($nodeMap);
@@ -390,10 +421,13 @@ class DefinitionStorage implements \ezcWorkflowDefinitionStorage
     {
         $platform = $this->conn->getDatabasePlatform();
 
-        $sql = "SELECT MAX(workflow_version) AS version FROM " . $this->options->workflowTable() . " ".
-               "WHERE workflow_name = ? " . $platform->getForUpdateSQL();
+        $sql = "SELECT workflow_version AS version FROM " . $this->options->workflowTable() . " ".
+               "WHERE workflow_name = ? " . 
+               " AND workflow_version = ( SELECT MAX(workflow_version) FROM " . $this->options->workflowTable( ) . " WHERE workflow_name = ? )" .
+               $platform->getForUpdateSQL();
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(1, $name);
+        $stmt->bindParam(2, $name);
         $stmt->execute();
 
         $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);

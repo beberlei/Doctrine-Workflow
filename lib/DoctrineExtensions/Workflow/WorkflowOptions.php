@@ -60,14 +60,29 @@ class WorkflowOptions
         return $this->prefix . 'workflow';
     }
 
+    public function workflowSequence( )
+    {
+        return $this->workflowTable() . '_workflow_id_seq';
+    }
+
     public function nodeTable()
     {
         return $this->prefix . 'node';
     }
 
+    public function nodeSequence( )
+    {
+        return $this->nodeTable() . '_node_id_seq';
+    }
+
     public function nodeConnectionTable()
     {
         return $this->prefix . 'node_connection';
+    }
+
+    public function nodeConnectionSequence()
+    {
+        return $this->nodeConnectionTable() . '_id_seq';
     }
 
     public function variableHandlerTable()
@@ -78,6 +93,11 @@ class WorkflowOptions
     public function executionTable()
     {
         return $this->prefix . 'execution';
+    }
+
+    public function executionSequence()
+    {
+        return $this->executionTable() . '_execution_id_seq';
     }
 
     public function executionStateTable()
