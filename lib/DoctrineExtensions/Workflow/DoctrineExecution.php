@@ -75,10 +75,16 @@ class DoctrineExecution extends \ezcWorkflowExecution
             'execution_next_thread_id'  => (int)$this->nextThreadId,
             'execution_next_poll_date'  => $executionNextPollDate,
         );
+        if ( $platform->prefersSequences( ) ) {
+            $data['execution_id'] = (int) $this->conn->fetchColumn($platform->getSequenceNextValSQL($this->options->executionSequence()));
+            $this->id = $data['execution_id'];
+        }
         $this->conn->insert($this->options->executionTable(), $data);
 
         // execution_id
-        $this->id = (int)$this->conn->lastInsertId();
+        if ( !$platform->prefersSequences( ) ) {
+            $this->id = (int)$this->conn->lastInsertId();
+        }
     }
 
     protected function doResume()
